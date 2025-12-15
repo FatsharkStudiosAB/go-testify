@@ -3,19 +3,20 @@ package main
 import (
 	"fmt"
 	"go-testify/internal/stingray"
-)
-
-const (
-	SERVER_HOST = "localhost"
-	SERVER_PORT = "8080"
+	"time"
 )
 
 func main() {
 	fmt.Println("Initializing Testify in Go using Testify...")
 
-	fmt.Printf("Server will start at %s:%s over %s\n", SERVER_HOST, SERVER_PORT, stingray.NetworkType)
-	connector := stingray.NewConnector(SERVER_HOST)
-	err := connector.Connect()
+	process := stingray.NewProcess()
+	defer process.Kill()
+
+	fmt.Printf("Server will start at %s:%s over %s\n", stingray.Address, stingray.Port, stingray.Protocol)
+	connector := stingray.NewConnector()
+	timeout := 10 * time.Second
+	maxRetries := 5
+	err := connector.Connect(timeout, maxRetries)
 	if err != nil {
 		fmt.Println("Error connecting:", err.Error())
 		panic(err)
@@ -27,12 +28,12 @@ func main() {
 	}
 
 	/*
-	buffer := make([]byte, 1024)
-	mLen, err := connection.Read(buffer)
-	if err != nil {
-		fmt.Println("Error reading from server:", err.Error())
-	}
-	fmt.Println("Message from Server: " + string(buffer[:mLen]))
-	defer connection.Close()
+		buffer := make([]byte, 1024)
+		mLen, err := connection.Read(buffer)
+		if err != nil {
+			fmt.Println("Error reading from server:", err.Error())
+		}
+		fmt.Println("Message from Server: " + string(buffer[:mLen]))
+		defer connection.Close()
 	*/
 }
