@@ -21,9 +21,9 @@ tasks:
 
   build-and-execute:
     desc: Build and then execute the Go application
-    deps:
-      - build
-      - execute
+    cmds:
+      - task build
+      - task execute
     aliases:
       - be
 
