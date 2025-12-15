@@ -1,0 +1,33 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+
+  build:
+    desc: Build the Go application
+    cmds:
+      - go build main.go
+    generates:
+      - main.exe
+
+  execute:
+    desc: Execute the compiled Go application on Windows
+    cmds:
+      - main.exe
+    aliases:
+      - main
+
+  build-and-execute:
+    desc: Build and then execute the Go application
+    deps:
+      - build
+      - execute
+    aliases:
+      - be
+
+  run:
+    desc: Run the Go application
+    cmds:
+      - go run main.go
