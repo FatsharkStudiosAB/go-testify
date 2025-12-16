@@ -31,3 +31,8 @@ tasks:
     desc: Run the Go application
     cmds:
       - go run main.go
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test -v ./...
