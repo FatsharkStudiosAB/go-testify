@@ -1,31 +1,84 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
+	"flag"
 	"go-testify/internal/stingray"
+	"io"
+	"log"
+	"os/exec"
+	"strings"
 	"time"
 )
 
+func waitForSignal(stdout io.ReadCloser, signal string) {
+	buf := new(bytes.Buffer)
+	go func() {
+		_, err := io.Copy(buf, stdout)
+		if err != nil {
+			log.Printf("Error copying stdout: %v", err)
+		}
+	}()
+	log.Printf("Waiting for signal: %s", signal)
+	for {
+		output := buf.String()
+		log.Printf("Output: %s", output)
+		if len(output) >= len(signal) && strings.Contains(output, signal) {
+			log.Printf("Received signal: %s", signal)
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func main() {
-	fmt.Println("Initializing Testify in Go using Testify...")
+	win32_data_dir := flag.String("data_dir", "E:/Projects/Bishop_data/win32", "Path to the win32 data directory")
+	flag.Parse()
 
-	process := stingray.NewProcess()
-	defer process.Kill()
+	log.Println("Initializing Testify in Go using Testify...")
 
-	fmt.Printf("Server will start at %s:%s over %s\n", stingray.Address, stingray.Port, stingray.Protocol)
-	connector := stingray.NewConnector()
-	timeout := 10 * time.Second
-	maxRetries := 5
-	err := connector.Connect(timeout, maxRetries)
+	cmd := exec.Command(stingray.Exe_Directory + stingray.Exe_File)
+	args := []string{"--data-dir", *win32_data_dir, "--disable-vsync", "--lua-discard-bytecode", "--port", stingray.Port, "--suppress-messagebox", "-game", "-testify", "-debug_testify", "-network_lan", "-skip_gamertag_popup", "-multiplayer_mode", "host"}
+	cmd.Args = append(cmd.Args, args...)
+
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Println("Error connecting:", err.Error())
-		panic(err)
+		log.Fatalf("Error creating StdoutPipe for Stingray process: %v", err)
 	}
 
-	err = connector.Hello()
+	err = cmd.Start()
+	defer cmd.Process.Kill()
 	if err != nil {
-		fmt.Println("Error writing to server:", err.Error())
+		log.Fatalf("Error starting Stingray process: %v", err)
 	}
+
+	c := make(chan int)
+	go waitForSignal(stdout, "[Lua] INFO [Testify] Ready!")
+	go func() {
+		err = cmd.Wait()
+		if err != nil {
+			log.Printf("Stingray process exited with error: %v", err)
+		} else {
+			log.Println("Stingray process exited successfully.")
+		}
+		c <- 1
+	}()
+	<-c
+
+	// fmt.Printf("Server will start at %s:%s over %s\n", stingray.Address, stingray.Port, stingray.Protocol)
+	// connector := stingray.NewConnector()
+	// timeout := 10 * time.Second
+	// maxRetries := 5
+	// err = connector.Connect(timeout, maxRetries)
+	// if err != nil {
+	// 	fmt.Println("Error connecting:", err.Error())
+	// 	panic(err)
+	// }
+
+	// err = connector.Hello()
+	// if err != nil {
+	// 	fmt.Println("Error writing to server:", err.Error())
+	// }
 
 	/*
 		buffer := make([]byte, 1024)
