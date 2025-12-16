@@ -3,7 +3,6 @@ package stingray
 import (
 	"fmt"
 	"net"
-	"os"
 	"time"
 )
 
@@ -14,25 +13,6 @@ const (
 	Port          = "14030"
 	Protocol      = "tcp"
 )
-
-func NewProcess() *os.Process {
-	command := Exe_File
-	args := []string{"--disable-vsync", "--lua-discard-bytecode", "--port", "14030", "--suppress-messagebox", "-game", "-testify", "-debug_testify", "-network_lan", "-skip_gamertag_popup", "-multiplayer_mode", "host"}
-
-	fmt.Printf("Launching Darktide executable %s in %s with args %s", Exe_File, Exe_Directory, args)
-
-	procAttr := new(os.ProcAttr)
-	procAttr.Dir = Exe_Directory
-	procAttr.Files = []*os.File{os.Stdin, os.Stdout, os.Stderr}
-	process, err := os.StartProcess(command, args, procAttr)
-	if err != nil {
-		fmt.Println("Error starting process:", err)
-		panic(err)
-	} else {
-		fmt.Println("Process started with PID:", process.Pid)
-		return process
-	}
-}
 
 type Connector struct {
 	address  string

@@ -8,7 +8,7 @@ tasks:
   build:
     desc: Build the Go application
     cmds:
-      - go build main.go
+      - go build main.go {{ if .data_dir }}--data_dir={{ .data_dir }}{{ end }}
     generates:
       - main.exe
 
@@ -22,7 +22,7 @@ tasks:
   build-and-execute:
     desc: Build and then execute the Go application
     cmds:
-      - task build
+      - task build {{ .data_dir }}
       - task execute
     aliases:
       - be
@@ -30,7 +30,7 @@ tasks:
   run:
     desc: Run the Go application
     cmds:
-      - go run main.go
+      - go run main.go {{ if .data_dir }}--data_dir={{ .data_dir }}{{ end }}
 
   test:
     desc: Run all tests
