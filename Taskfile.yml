@@ -36,3 +36,8 @@ tasks:
     desc: Run all tests
     cmds:
       - go test -v ./...
+
+  report:
+    desc: Run all tests, produce a JUnit report file
+    cmds:
+      - go test -v ./... 2>&1 | go-junit-report.exe -set-exit-code > report.xml
