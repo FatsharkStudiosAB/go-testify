@@ -1,8 +1,12 @@
 package stingray
 
 import (
+	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -35,7 +39,6 @@ func (connector *Connector) Connect(timeout time.Duration, maxRetries int) error
 		conn, err := net.Dial(connector.protocol, connector.address+":"+connector.port)
 		if err == nil {
 			fmt.Println("Connected to game client...")
-			defer conn.Close()
 			connector.conn = conn
 			return nil
 		}
@@ -46,15 +49,41 @@ func (connector *Connector) Connect(timeout time.Duration, maxRetries int) error
 }
 
 func (connector *Connector) Disconnect() {
-	connector.conn.Close()
+	log.Println("Disconnecting from game client...")
+	err := connector.conn.Close()
+	if err != nil {
+		log.Printf("Error disconnecting: %v", err)
+	}
 }
 
-// Placeholder for testing
-func (connector *Connector) Hello() error {
-	_, err := connector.conn.Write([]byte("Hello from Testify Client"))
-	if err != nil {
-		fmt.Println("Error writing to server:", err.Error())
-	}
+type JsonStruct struct {
+	Type   string `json:"type"`
+	Script string `json:"script"`
+}
 
+func RunLuaFunction(connector *Connector, functionName string, args ...string) {
+	function := functionName + "(" + strings.Join(args, ",") + ")"
+	jsonData := JsonStruct{Type: "script", Script: "Application.console_send({ type = 'script', level = 'info', system = 'Testify', message = '" + function + "' })"}
+	jsonBytes, err := json.Marshal(jsonData)
+	if err != nil {
+		log.Printf("Error marshaling JSON: %v", err)
+		return
+	}
+	log.Printf("Marshaled JSON: %s", string(jsonBytes))
+	// Create the message with length prefix
+	// First 4 bytes: 0, Next 4 bytes: length of JSON
+	msg := make([]byte, 8+len(jsonBytes))
+	binary.BigEndian.PutUint32(msg[0:4], 0)
+	binary.BigEndian.PutUint32(msg[4:8], uint32(len(jsonBytes)))
+	copy(msg[8:], jsonBytes)
+	log.Printf("Binary packed json: %s", msg)
+	err = connector.Send(msg)
+	if err != nil {
+		log.Fatalf("Error sending JSON: %v", err)
+	}
+}
+
+func (connector *Connector) Send(js []byte) error {
+	_, err := connector.conn.Write(js)
 	return err
 }
