@@ -14,6 +14,7 @@ const (
 	Address       = "localhost"
 	Exe_Directory = "C:/BitSquidBinaries/bishop/engine/win64/dev/"
 	Exe_File      = "stingray_win64_dev_x64.exe"
+	PLAIN_JSON    = 0
 	Port          = "14030"
 	Protocol      = "tcp"
 )
@@ -56,34 +57,44 @@ func (connector *Connector) Disconnect() {
 	}
 }
 
-type JsonStruct struct {
+func send(conn net.Conn, data Message) error {
+	log.Printf("Sending data: %v", data)
+	// Convert to JSON
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	log.Printf("Marshalled json: %s", jsonBytes)
+
+	// Create message: 4 bytes type + 4 bytes length + JSON
+	msg := make([]byte, 8+len(jsonBytes))
+	binary.BigEndian.PutUint32(msg[0:4], PLAIN_JSON)
+	binary.BigEndian.PutUint32(msg[4:8], uint32(len(jsonBytes)))
+	copy(msg[8:], jsonBytes)
+
+	log.Printf("Binary packed json: %s", msg)
+
+	// Write to socket
+	_, err = conn.Write(msg)
+	return err
+}
+
+type Message struct {
 	Type   string `json:"type"`
 	Script string `json:"script"`
 }
 
-func RunLuaFunction(connector *Connector, functionName string, args ...string) {
-	function := functionName + "(" + strings.Join(args, ",") + ")"
-	jsonData := JsonStruct{Type: "script", Script: "Application.console_send({ type = 'script', level = 'info', system = 'Testify', message = '" + function + "' })"}
-	jsonBytes, err := json.Marshal(jsonData)
-	if err != nil {
-		log.Printf("Error marshaling JSON: %v", err)
-		return
+func ConsoleSend(connector *Connector, messageType string, system string, message string, args ...string) {
+	if messageType == "script" {
+		message = message + "(" + strings.Join(args, ",") + ")"
 	}
-	log.Printf("Marshaled JSON: %s", string(jsonBytes))
-	// Create the message with length prefix
-	// First 4 bytes: 0, Next 4 bytes: length of JSON
-	msg := make([]byte, 8+len(jsonBytes))
-	binary.BigEndian.PutUint32(msg[0:4], 0)
-	binary.BigEndian.PutUint32(msg[4:8], uint32(len(jsonBytes)))
-	copy(msg[8:], jsonBytes)
-	log.Printf("Binary packed json: %s", msg)
-	err = connector.Send(msg)
-	if err != nil {
-		log.Fatalf("Error sending JSON: %v", err)
+	log.Printf("Sending %s to console [%s]: %s", messageType, system, message)
+	data := Message{
+		Type:   "script",
+		Script: "Application.console_send({ type = '" + messageType + "', level = 'info', system = '" + system + "', message = '" + message + "' })",
 	}
-}
-
-func (connector *Connector) Send(js []byte) error {
-	_, err := connector.conn.Write(js)
-	return err
+	log.Printf("Prepared data: %v", data)
+	if err := send(connector.conn, data); err != nil {
+		log.Fatalf("Error sending message: %v", err)
+	}
 }

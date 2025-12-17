@@ -17,7 +17,6 @@ func waitForSignal(buf *bytes.Buffer, signal string) {
 	log.Printf("Waiting for signal: %s", signal)
 	for {
 		output := buf.String()
-		log.Printf("Output: %s", output)
 		if len(output) >= len(signal) && strings.Contains(output, signal) {
 			log.Printf("Received signal: %s", signal)
 			break
@@ -28,7 +27,9 @@ func waitForSignal(buf *bytes.Buffer, signal string) {
 
 func runTestCase(connector *stingray.Connector, testCase string, args ...string) {
 	log.Printf("Running test case %s with args %v", testCase, args)
-	stingray.RunLuaFunction(connector, testCase, args...)
+	messageType := "script"
+	system := "Testify"
+	stingray.ConsoleSend(connector, messageType, system, testCase, args...)
 }
 
 func main() {
@@ -66,8 +67,10 @@ func main() {
 	c := make(chan int)
 	go func() {
 		waitForSignal(&buf, "[Lua] INFO [Testify] Ready!")
-		stingray.RunLuaFunction(connector, "Testify:ready_signal_received")
-		runTestCase(connector, "CombatTestCases.spawn_all_enemies", "{ kill_timer = 5 }")
+		stingray.ConsoleSend(connector, "message", "Testify", "Hello World!")
+		// Below is disabled until sending to console works properly
+		// stingray.RunLuaFunction(connector, "Testify:ready_signal_received")
+		// runTestCase(connector, "CombatTestCases.spawn_all_enemies", "{ kill_timer = 5 }")
 	}()
 	go func() {
 		err = cmd.Wait()
@@ -80,13 +83,13 @@ func main() {
 	}()
 	<-c
 
-	/*
-		buffer := make([]byte, 1024)
-		mLen, err := connection.Read(buffer)
-		if err != nil {
-			fmt.Println("Error reading from server:", err.Error())
-		}
-		fmt.Println("Message from Server: " + string(buffer[:mLen]))
-		defer connection.Close()
+	/*  Might come in handy for actually reading signals from the server later
+	buffer := make([]byte, 1024)
+	mLen, err := connection.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading from server:", err.Error())
+	}
+	fmt.Println("Message from Server: " + string(buffer[:mLen]))
+	defer connection.Close()
 	*/
 }
