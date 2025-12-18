@@ -12,14 +12,11 @@ import (
 )
 
 type DarktideClient struct {
+	command *exec.Cmd
 }
 
 func NewDarktideClient() *DarktideClient {
-	return &DarktideClient{}
-}
-
-// TODO parameterize this
-func (client DarktideClient) Start() (bytes.Buffer, error) {
+	// D:/svn/bishop/trunk_data/win32
 	win32_data_dir := flag.String("data_dir", "E:/Projects/Bishop_data/win32", "Path to the win32 data directory")
 	flag.Parse()
 	cmd := exec.Command(stingray.Exe_Directory + stingray.Exe_File)
@@ -28,12 +25,18 @@ func (client DarktideClient) Start() (bytes.Buffer, error) {
 	args = append(args, strings.Split("-game -skip_first_character_creation -skip_prologue -skip_cinematics -mission spawn_all_enemies -dev -crash_on_account_login_error -character_profile_selector 1 -chunk_detector_free_flight_camera_raycast -chunk_lod_free_flight_camera_raycast -disable_pacing", " ")...)
 	cmd.Args = append(cmd.Args, args...)
 
+	return &DarktideClient{command: cmd}
+}
+
+// TODO parameterize this
+func (client DarktideClient) Start() (bytes.Buffer, error) {
+
 	localShell := shell.NewLocalShell()
-	buf, _, err := localShell.ExecuteCommand(cmd)
+	buf, _, err := localShell.ExecuteCommand(client.command)
 	if err != nil {
 		log.Fatalf("Error starting Stingray process: %v", err)
 	}
-	defer cmd.Process.Kill()
+
 /* TODO makee this work :)
 	c := make(chan int)
 	go func() {
@@ -56,6 +59,10 @@ func (client DarktideClient) Start() (bytes.Buffer, error) {
 */
 
 	return buf, err
+}
+
+func (client DarktideClient) Stop() {
+	client.command.Process.Kill()
 }
 
 // Not actually waiting for a signal, just polling the buffer for the signal string

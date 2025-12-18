@@ -22,6 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error starting Darktide client process: %v", err)
 	}
+	defer client.Stop()
 
 	connector := stingray.NewConnector()
 	log.Printf("Server will start at %s:%s over %s\n", stingray.Address, stingray.Port, stingray.Protocol)
