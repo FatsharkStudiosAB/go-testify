@@ -3,10 +3,9 @@ package main
 import (
 	"bytes"
 	"flag"
+	"go-testify/internal/shell"
 	"go-testify/internal/stingray"
-	"io"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -44,11 +43,8 @@ func main() {
 	args = append(args, strings.Split("-game -skip_first_character_creation -skip_prologue -skip_cinematics -mission spawn_all_enemies -dev -crash_on_account_login_error -character_profile_selector 1 -chunk_detector_free_flight_camera_raycast -chunk_lod_free_flight_camera_raycast -disable_pacing", " ")...)
 	cmd.Args = append(cmd.Args, args...)
 
-	var buf bytes.Buffer
-	cmd.Stdout = io.MultiWriter(os.Stdout, &buf)
-	cmd.Stderr = os.Stderr
-
-	err := cmd.Start()
+	localShell := shell.NewLocalShell()
+	buf, _, err := localShell.ExecuteCommand(cmd)
 	if err != nil {
 		log.Fatalf("Error starting Stingray process: %v", err)
 	}
