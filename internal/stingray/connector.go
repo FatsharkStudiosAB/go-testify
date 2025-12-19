@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 	"time"
 )
 
@@ -58,13 +57,11 @@ func (connector *Connector) Disconnect() {
 }
 
 func send(conn net.Conn, data Message) error {
-	log.Printf("Sending data: %v", data)
-	// Convert to JSON
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-	log.Printf("Marshalled json: %s", jsonBytes)
+	log.Printf("Sending json: %s", jsonBytes)
 
 	// Create message: 4 bytes type + 4 bytes length + JSON
 	msg := make([]byte, 8+len(jsonBytes))
@@ -72,9 +69,6 @@ func send(conn net.Conn, data Message) error {
 	binary.BigEndian.PutUint32(msg[4:8], uint32(len(jsonBytes)))
 	copy(msg[8:], jsonBytes)
 
-	log.Printf("Binary packed json: %s", msg)
-
-	// Write to socket
 	_, err = conn.Write(msg)
 	return err
 }
@@ -84,16 +78,19 @@ type Message struct {
 	Script string `json:"script"`
 }
 
-func ConsoleSend(connector *Connector, messageType string, system string, message string, args ...string) {
-	if messageType == "script" {
-		message = message + "(" + strings.Join(args, ",") + ")"
+func ConsoleSend(connector *Connector, messageType string, system string, message string, args map[string]any) {
+	if len(args) > 0 {
+		jsonArgs, err := json.Marshal(args)
+		if err != nil {
+			log.Fatalf("Error marshalling args: %v", err)
+		}
+		message = message + "('" + string(jsonArgs) + "')"
 	}
-	log.Printf("Sending %s to console [%s]: %s", messageType, system, message)
+	log.Printf("ConsoleSend called with type: %s, system: %s, message: %s", messageType, system, message)
 	data := Message{
 		Type:   "script",
-		Script: "Application.console_send({ type = '" + messageType + "', level = 'info', system = '" + system + "', message = '" + message + "' })",
+		Script: "Application.console_send({ type = '" + messageType + "', level = 'info', system = '" + system + "', message = " + message + " })",
 	}
-	log.Printf("Prepared data: %v", data)
 	if err := send(connector.conn, data); err != nil {
 		log.Fatalf("Error sending message: %v", err)
 	}

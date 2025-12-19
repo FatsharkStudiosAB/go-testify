@@ -12,18 +12,18 @@ import (
 
 type LocalShell struct {
 	// if set to true, it will not only return the command output but also print it
-	writeStdoutStderr	bool
+	writeStdoutStderr bool
 	// if set to true, will write any output meant for stderr to stdout instead
-	stderrToStdout		bool
+	stderrToStdout bool
 	// if set to true, will wait for the execution to return. Otherwise runs as a background process
-	waitForCompletion	bool
+	waitForCompletion bool
 }
 
 func NewLocalShell() *LocalShell {
 	return &LocalShell{
-		writeStdoutStderr:	true,
-		stderrToStdout: 	true,
-		waitForCompletion:  false,
+		writeStdoutStderr: true,
+		stderrToStdout:    true,
+		waitForCompletion: false,
 	}
 }
 
@@ -47,6 +47,10 @@ func (shell LocalShell) ExecuteCommandAndWait(command *exec.Cmd) (bytes.Buffer, 
 	stdoutBuf, stderrBuf := shell.bufferSetup(command)
 	err := command.Run()
 	return stdoutBuf, stderrBuf, err
+}
+
+func WaitForCommand(command *exec.Cmd) error {
+	return command.Wait()
 }
 
 func (shell LocalShell) bufferSetup(command *exec.Cmd) (bytes.Buffer, bytes.Buffer) {
