@@ -21,3 +21,8 @@ You need to have [go-junit-report](https://github.com/jstemmer/go-junit-report) 
 ```
 go test -v ./... 2>&1 | go-junit-report.exe -set-exit-code > report.xml
 ```
+# Resources
+- https://thedumpsterfireproject.com/posts/godog-part-2/
+- https://stackoverflow.com/questions/49936061/build-single-test-in-go
+- https://github.com/golang-standards/project-layout
+- https://github.com/testmoapp/junitxml
